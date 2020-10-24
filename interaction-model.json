@@ -1,0 +1,35 @@
+{
+    "interactionModel": {
+        "languageModel": {
+            "invocationName": "aci dashboard",
+            "intents": [
+                {
+                    "name": "AMAZON.CancelIntent",
+                    "samples": []
+                },
+                {
+                    "name": "AMAZON.HelpIntent",
+                    "samples": []
+                },
+                {
+                    "name": "AMAZON.StopIntent",
+                    "samples": []
+                },
+                {
+                    "name": "AMAZON.NavigateHomeIntent",
+                    "samples": []
+                },
+                {
+                    "name": "GetHealthIntent",
+                    "slots": [],
+                    "samples": [
+                        "how is the health",
+                        "how is fabric doing",
+                        "what is fabric health"
+                    ]
+                }
+            ],
+            "types": []
+        }
+    }
+}
