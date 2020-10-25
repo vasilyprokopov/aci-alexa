@@ -33,11 +33,14 @@ def aaaLogin(apicUrl, apicUser, apicPassword):
     
     if response.status_code == 200:
         token = response.json()['imdata'][0]['aaaLogin']['attributes']['token']
-        return token
+        message = 'Token received OK'
+        return token, message
     else:
-        print ('Error code: ', response.status_code)
-        print (response.json()['imdata'][0]['error']['attributes']['text'])
-        quit()
+        errorCode = response.status_code
+        errorMessage = response.json()['imdata'][0]['error']['attributes']['text']
+        message = f'Error code: {errorCode}\n{errorMessage}'
+        token = ''
+        return token, message
 
 
 def getHealth(apicUrl,token):
@@ -48,15 +51,77 @@ def getHealth(apicUrl,token):
     
     if response.status_code == 200:
         health = response.json()['imdata'][0]['fabricHealthTotal']['attributes']['cur']
-        return health
+        message = f'Fabric health is {health} points out of 100.'
+        return message
     else:
-        print ('Error code: ', response.status_code)
-        print (response.json()['imdata'][0]['error']['attributes']['text'])
-        quit()
+        errorCode = response.status_code
+        errorMessage = response.json()['imdata'][0]['error']['attributes']['text']
+        message = f'Error code: {errorCode}\n{errorMessage}'
+        return message
 
 
-token = aaaLogin(apicUrl, apicUser, apicPassword)
+def getControllers(apicUrl,token):
+    # Function to get controller health
+    url = apicUrl+'/api/node/class/infraWiNode.json'
+    header = {'DevCookie': token}
+    response = requests.get(url, headers=header, verify=False)
+    
+    if response.status_code == 200:
+        message = ''
+        for controller in response.json()['imdata']:
+            nodeName = controller['infraWiNode']['attributes']['nodeName']
+            operSt = controller['infraWiNode']['attributes']['operSt']
+            health = controller['infraWiNode']['attributes']['health']
+            message = message + f'Controller {nodeName} is {operSt} and {health}.\n'
+        message = message + 'That\'s all your controllers.'
+        return message
+    else:
+        errorCode = response.status_code
+        errorMessage = response.json()['imdata'][0]['error']['attributes']['text']
+        message = f'Error code: {errorCode}\n{errorMessage}'
+        return message
 
-health = getHealth(apicUrl,token)
 
-print ('Fabric health:', health)
+def getNodes(apicUrl,token):
+    # Function to get node health
+    url = apicUrl+'/api/node/class/fabricNode.json'
+    header = {'DevCookie': token}
+    response = requests.get(url, headers=header, verify=False)
+    
+    if response.status_code == 200:
+        message = ''
+        for node in response.json()['imdata']:
+            name = node['fabricNode']['attributes']['name']
+            role = node['fabricNode']['attributes']['role']
+            fabricSt = node['fabricNode']['attributes']['fabricSt']
+            
+            if not role == 'controller' and not fabricSt == 'active':
+                message = message + f'Current operational status of {role} {name} is {fabricSt}.\n'
+        
+        if message == '':
+            message = 'All leafs and spines are up and running.'
+        
+        return message
+    else:
+        errorCode = response.status_code
+        errorMessage = response.json()['imdata'][0]['error']['attributes']['text']
+        message = f'Error code: {errorCode}\n{errorMessage}'
+        return message
+
+
+token, message = aaaLogin(apicUrl, apicUser, apicPassword)
+if token == '':
+    print (message)
+    quit()
+
+message = getHealth(apicUrl,token)
+print (message)
+print ('----------')
+
+message = getControllers(apicUrl,token)
+print (message)
+print ('----------')
+
+message = getNodes(apicUrl,token)
+print (message)
+print ('----------')

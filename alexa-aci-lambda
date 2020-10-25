@@ -1,9 +1,5 @@
 # -*- coding: utf-8 -*-
 
-# This sample demonstrates handling intents from an Alexa skill using the Alexa Skills Kit SDK for Python.
-# Please visit https://alexa.design/cookbook for additional examples on implementing slots, dialog management,
-# session persistence, api calls, and more.
-# This sample is built using the handler classes approach in skill builder.
 import logging
 
 import requests
@@ -145,9 +141,57 @@ class GetHealthIntentHandler(AbstractRequestHandler):
     def handle(self, handler_input):
         # type: (HandlerInput) -> Response
         
-        token = aaaLogin(apicUrl, apicUser, apicPassword)
-        health = getHealth(apicUrl,token)
-        speak_output = f"Fabric Health is {health}"
+        token, message = aaaLogin(apicUrl, apicUser, apicPassword)
+        if token is not '':
+            message = getHealth(apicUrl,token)
+        
+        speak_output = message
+
+        return (
+            handler_input.response_builder
+                .speak(speak_output)
+                # .ask("add a reprompt if you want to keep the session open for the user to respond")
+                .response
+        )
+
+
+class GetControllersIntentHandler(AbstractRequestHandler):
+    """Handler for ACI Get Controllers Intent."""
+    def can_handle(self, handler_input):
+        # type: (HandlerInput) -> bool
+        return ask_utils.is_intent_name("GetControllersIntent")(handler_input)
+
+    def handle(self, handler_input):
+        # type: (HandlerInput) -> Response
+        
+        token, message = aaaLogin(apicUrl, apicUser, apicPassword)
+        if token is not '':
+            message = getControllers(apicUrl,token)
+        
+        speak_output = message
+
+        return (
+            handler_input.response_builder
+                .speak(speak_output)
+                # .ask("add a reprompt if you want to keep the session open for the user to respond")
+                .response
+        )
+
+
+class GetNodesIntentHandler(AbstractRequestHandler):
+    """Handler for ACI Get Nodes Intent."""
+    def can_handle(self, handler_input):
+        # type: (HandlerInput) -> bool
+        return ask_utils.is_intent_name("GetNodesIntent")(handler_input)
+
+    def handle(self, handler_input):
+        # type: (HandlerInput) -> Response
+        
+        token, message = aaaLogin(apicUrl, apicUser, apicPassword)
+        if token is not '':
+            message = getNodes(apicUrl,token)
+        
+        speak_output = message
 
         return (
             handler_input.response_builder
@@ -163,7 +207,8 @@ apicUser = 'admin'
 apicPassword = 'ciscopsdt'
 
 def aaaLogin(apicUrl, apicUser, apicPassword):
-    # Function to log into APIC and get a token (DevCookie)
+    # Function to log into APIC and get a token (DevCookie).
+    # Function receives APIC URL, username and password and returnes a token and a message.
     data = {
         "aaaUser": {
             "attributes": {
@@ -177,20 +222,82 @@ def aaaLogin(apicUrl, apicUser, apicPassword):
     
     response = requests.post(url, json=data, verify=False)
     
-    token = response.json()['imdata'][0]['aaaLogin']['attributes']['token']
-    
-    return token
+    if response.status_code == 200:
+        token = response.json()['imdata'][0]['aaaLogin']['attributes']['token']
+        message = 'Token received OK'
+        return token, message
+    else:
+        errorCode = response.status_code
+        errorMessage = response.json()['imdata'][0]['error']['attributes']['text']
+        message = f'Error code: {errorCode}\n{errorMessage}'
+        token = ''
+        return token, message
+
 
 def getHealth(apicUrl,token):
     # Function to get fabric health
     url = apicUrl+'/api/node/mo/topology/health.json'
     header = {'DevCookie': token}
-    
     response = requests.get(url, headers=header, verify=False)
     
-    health = response.json()['imdata'][0]['fabricHealthTotal']['attributes']['cur']
+    if response.status_code == 200:
+        health = response.json()['imdata'][0]['fabricHealthTotal']['attributes']['cur']
+        message = f'Fabric health is {health} points out of 100.'
+        return message
+    else:
+        errorCode = response.status_code
+        errorMessage = response.json()['imdata'][0]['error']['attributes']['text']
+        message = f'Error code: {errorCode}\n{errorMessage}'
+        return message
+
+
+def getControllers(apicUrl,token):
+    # Function to get controller health
+    url = apicUrl+'/api/node/class/infraWiNode.json'
+    header = {'DevCookie': token}
+    response = requests.get(url, headers=header, verify=False)
     
-    return health
+    if response.status_code == 200:
+        message = ''
+        for controller in response.json()['imdata']:
+            nodeName = controller['infraWiNode']['attributes']['nodeName']
+            operSt = controller['infraWiNode']['attributes']['operSt']
+            health = controller['infraWiNode']['attributes']['health']
+            message = message + f'Controller {nodeName} is {operSt} and {health}.\n'
+        message = message + 'That\'s all your controllers.'
+        return message
+    else:
+        errorCode = response.status_code
+        errorMessage = response.json()['imdata'][0]['error']['attributes']['text']
+        message = f'Error code: {errorCode}\n{errorMessage}'
+        return message
+
+
+def getNodes(apicUrl,token):
+    # Function to get node health
+    url = apicUrl+'/api/node/class/fabricNode.json'
+    header = {'DevCookie': token}
+    response = requests.get(url, headers=header, verify=False)
+    
+    if response.status_code == 200:
+        message = ''
+        for node in response.json()['imdata']:
+            name = node['fabricNode']['attributes']['name']
+            role = node['fabricNode']['attributes']['role']
+            fabricSt = node['fabricNode']['attributes']['fabricSt']
+            
+            if not role == 'controller' and not fabricSt == 'active':
+                message = message + f'Current operational status of {role} {name} is {fabricSt}.\n'
+        
+        if message == '':
+            message = 'All leafs and spines are up and running.'
+        
+        return message
+    else:
+        errorCode = response.status_code
+        errorMessage = response.json()['imdata'][0]['error']['attributes']['text']
+        message = f'Error code: {errorCode}\n{errorMessage}'
+        return message
 
 
 # The SkillBuilder object acts as the entry point for your skill, routing all request and response
@@ -202,6 +309,8 @@ sb = SkillBuilder()
 
 sb.add_request_handler(LaunchRequestHandler())
 sb.add_request_handler(GetHealthIntentHandler())
+sb.add_request_handler(GetControllersIntentHandler())
+sb.add_request_handler(GetNodesIntentHandler())
 sb.add_request_handler(HelpIntentHandler())
 sb.add_request_handler(CancelOrStopIntentHandler())
 sb.add_request_handler(SessionEndedRequestHandler())
