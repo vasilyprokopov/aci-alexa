@@ -2,11 +2,14 @@
 
 Amazon Alexa skill that would report Cisco ACI fabric health e.g. controller status, node status, fabric health score.
 
-You can ask Alexa:
+You can ask Alexa ACI dashboard:
 
-- what is fabric health?
-- how are APICs?
+- what is my fabric health?
+- how are my APICs?
 - how are spines?
+- tell me a joke.
+
+Full example: "Alexa, ask ACI dashboard what is my fabric health".
 
 ## Instructions to use
 
