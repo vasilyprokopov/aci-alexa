@@ -201,6 +201,29 @@ class GetNodesIntentHandler(AbstractRequestHandler):
         )
 
 
+class TellJokeIntentHandler(AbstractRequestHandler):
+    """Handler for ACI Get Nodes Intent."""
+    def can_handle(self, handler_input):
+        # type: (HandlerInput) -> bool
+        return ask_utils.is_intent_name("TellJokeIntent")(handler_input)
+
+    def handle(self, handler_input):
+        # type: (HandlerInput) -> Response
+        
+        token, message = aaaLogin(apicUrl, apicUser, apicPassword)
+        if token is not '':
+            message = tellJoke()
+        
+        speak_output = message
+
+        return (
+            handler_input.response_builder
+                .speak(speak_output)
+                # .ask("add a reprompt if you want to keep the session open for the user to respond")
+                .response
+        )
+
+
 # Set of APIC functions
 apicUrl = 'https://sandboxapicdc.cisco.com'
 apicUser = 'admin'
@@ -287,10 +310,12 @@ def getNodes(apicUrl,token):
             fabricSt = node['fabricNode']['attributes']['fabricSt']
             
             if not role == 'controller' and not fabricSt == 'active':
-                message = message + f'Current operational status of {role} {name} is {fabricSt}.\n'
+                message = message + f'Current operational status of {name} is {fabricSt}.\n'
         
         if message == '':
             message = 'All leafs and spines are up and running.'
+        else:
+            message = message + 'All other nodes are OK.'
         
         return message
     else:
@@ -299,6 +324,11 @@ def getNodes(apicUrl,token):
         message = f'Error code: {errorCode}\n{errorMessage}'
         return message
 
+
+def tellJoke():
+    # Function to tell a joke
+    message = 'ACI is cool but marketers need to cool off!'
+    return message
 
 # The SkillBuilder object acts as the entry point for your skill, routing all request and response
 # payloads to the handlers above. Make sure any new handlers or interceptors you've
@@ -311,6 +341,7 @@ sb.add_request_handler(LaunchRequestHandler())
 sb.add_request_handler(GetHealthIntentHandler())
 sb.add_request_handler(GetControllersIntentHandler())
 sb.add_request_handler(GetNodesIntentHandler())
+sb.add_request_handler(TellJokeIntentHandler())
 sb.add_request_handler(HelpIntentHandler())
 sb.add_request_handler(CancelOrStopIntentHandler())
 sb.add_request_handler(SessionEndedRequestHandler())

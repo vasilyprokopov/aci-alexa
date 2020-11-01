@@ -23,11 +23,37 @@
                     "name": "GetHealthIntent",
                     "slots": [],
                     "samples": [
-                        "how is the health",
+                        "how is health",
                         "how is fabric doing",
                         "what is fabric health"
                     ]
+                },
+                {
+                    "name": "GetControllersIntent",
+                    "slots": [],
+                    "samples": [
+                        "how are APICs",
+                        "how are controllers"
+                    ]
+                },
+                {
+                    "name": "GetNodesIntent",
+                    "slots": [],
+                    "samples": [
+                        "how is hardware",
+                        "how are spines",
+                        "how are leaves",
+                        "how are nodes"
+                    ]
+                },
+                {
+                    "name": "TellJokeIntent",
+                    "slots": [],
+                    "samples": [
+                        "tell a joke"
+                    ]
                 }
+
             ],
             "types": []
         }

@@ -87,9 +87,10 @@ def getNodes(apicUrl,token):
     url = apicUrl+'/api/node/class/fabricNode.json'
     header = {'DevCookie': token}
     response = requests.get(url, headers=header, verify=False)
-    
+
     if response.status_code == 200:
         message = ''
+        
         for node in response.json()['imdata']:
             name = node['fabricNode']['attributes']['name']
             role = node['fabricNode']['attributes']['role']
@@ -100,6 +101,8 @@ def getNodes(apicUrl,token):
         
         if message == '':
             message = 'All leafs and spines are up and running.'
+        else:
+            message = message + 'All other nodes are OK.'
         
         return message
     else:
